@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "my-expo-app",
-    "slug": "my-expo-app",
+    "name": "chispa-app",
+    "slug": "chispa-app",
     "version": "1.0.0",
 
     "web": {
