@@ -1,13 +1,13 @@
 import React from 'react';
 import { View, Text, Button } from 'react-native';
 
-const HomeScreen = ({ navigation }) => {
+const ProfileScreen = ({ navigation }) => {
   return (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text>Bienvenido a Chispa</Text>
-      <Button title="Ir al Login" onPress={() => navigation.navigate('Login')} />
+      <Text>Perfil de Usuario</Text>
+      <Button title="Perfil" onPress={() => navigation.navigate('Home')} />
     </View>
   );
 };
 
-export default HomeScreen;
+export default ProfileScreen;
