@@ -25,6 +25,11 @@ const HomeScreen = ({ navigation }) => {
       navigation.navigate('Profile', { userId: user.id }); // Pasa el userId como parámetro
     }
   };
+  const goToPreferences = () => {
+    if (user) {
+      navigation.navigate('Preference', { userId: user.id });
+    }
+  };
 
   return (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -32,6 +37,7 @@ const HomeScreen = ({ navigation }) => {
         <>
           <Text>Bienvenido a Chispa, {user.name}</Text>
           <Button title="Ver Perfil" onPress={goToProfile} />
+          <Button title="Ver Preferencias" onPress={goToPreferences} />
         </>
       ) : (
         <Text>Cargando usuario...</Text>

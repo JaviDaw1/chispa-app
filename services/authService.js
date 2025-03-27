@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import api from './Api';
 
+import api from './Api';
 
 export default class AuthService {
   constructor() {
@@ -71,13 +71,86 @@ export default class AuthService {
   }
 
   // Obtener información del usuario autenticado
-   async getUserInfo() {
+  async getUserInfo() {
     try {
       // eslint-disable-next-line no-undef
       const userInfo = await AsyncStorage.getItem('user');
       return userInfo ? JSON.parse(userInfo) : null;
     } catch (error) {
       console.error('Error al obtener información del usuario:', error);
+      return null;
+    }
+  }
+  async getProfile(userId) {
+    try {
+      const token = await this.getToken();
+      if (!token) throw new Error('No autenticado');
+      const response = await api.get(`/profiles/user/${userId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error al obtener perfil:', error.response?.data || error.message);
+      throw error;
+    }
+  }
+  // Guardar perfil en AsyncStorage
+  async saveProfile(profile) {
+    try {
+      await AsyncStorage.setItem('profile', JSON.stringify(profile));
+    } catch (error) {
+      console.error('Error al guardar perfil:', error);
+    }
+  }
+  async getStoredProfile() {
+    try {
+      const profile = await AsyncStorage.getItem('profile');
+      return profile ? JSON.parse(profile) : null;
+    } catch (error) {
+      console.error('Error al obtener perfil almacenado:', error);
+      return null;
+    }
+  }
+
+  //PREFERENCIAS
+  async getPreferencesByUserId(userId) {
+    try {
+      const token = await this.getToken();
+      if (!token) throw new Error('No autenticado');
+
+      const response = await api.get(`/preferences/user/${userId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error al obtener preferencias:', error.response?.data || error.message);
+      throw error;
+    }
+  }
+
+  async updateUserPreferences(userId, preferencesData) {
+    try {
+      const token = await this.getToken();
+      if (!token) throw new Error('No autenticado');
+
+      const response = await api.put(`/preferences/${userId}`, preferencesData);
+      return response.data;
+    } catch (error) {
+      console.error('Error al actualizar preferencias:', error.response?.data || error.message);
+      throw error;
+    }
+  }
+
+  async savePreferencesToStorage(preferences) {
+    try {
+      await AsyncStorage.setItem('preferences', JSON.stringify(preferences));
+    } catch (error) {
+      console.error('Error al guardar preferencias:', error);
+    }
+  }
+
+  async getStoredPreferences() {
+    try {
+      const preferences = await AsyncStorage.getItem('preferences');
+      return preferences ? JSON.parse(preferences) : null;
+    } catch (error) {
+      console.error('Error al obtener preferencias almacenadas:', error);
       return null;
     }
   }

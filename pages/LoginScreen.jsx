@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useState, useEffect } from 'react';
 import { View, TextInput, Button, Alert, StyleSheet, ActivityIndicator } from 'react-native';
+
 import AuthService from '../services/authService';
 
 const LoginScreen = ({ navigation }) => {
@@ -25,7 +26,6 @@ const LoginScreen = ({ navigation }) => {
   const handleLogin = async () => {
     try {
       setLoading(true);
-      
       if (!email || !password) {
         Alert.alert('Error', 'Por favor ingresa email y contraseña');
         return;
@@ -34,23 +34,13 @@ const LoginScreen = ({ navigation }) => {
       const authService = new AuthService();
       const response = await authService.login(email, password);
 
-      if (response && response.token) {
+      if (response && response.token && response.user) {
         // Guardar token y todos los datos del usuario
         await AsyncStorage.setItem('token', response.token);
-        
-        // Guardar toda la información del usuario (incluyendo datos adicionales)
-        if (response.user) {
-          await AsyncStorage.setItem('user', JSON.stringify({
-            ...response.user,
-            firstName: response.user.firstName || response.user.firstname,
-            lastName: response.user.lastName || response.user.lastname,
-            gender: response.user.gender,
-            location: response.user.location,
-            bio: response.user.bio,
-            interests: response.user.interests,
-            role: response.user.role || response.role
-          }));
-        }
+        await AsyncStorage.setItem('user', JSON.stringify(response.user));
+
+        const profile = await authService.getProfile(response.user.id);
+        await authService.saveProfile(profile);
 
         Alert.alert('Inicio de sesión exitoso', 'Bienvenido');
         navigation.navigate('Home');
@@ -60,7 +50,7 @@ const LoginScreen = ({ navigation }) => {
     } catch (error) {
       console.error('Error al iniciar sesión:', error);
       let errorMessage = 'Credenciales incorrectas';
-      
+
       if (error.response) {
         if (error.response.status === 401) {
           errorMessage = 'Email o contraseña incorrectos';
@@ -68,7 +58,7 @@ const LoginScreen = ({ navigation }) => {
           errorMessage = error.response.data.message;
         }
       }
-      
+
       Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
@@ -92,20 +82,13 @@ const LoginScreen = ({ navigation }) => {
         value={password}
         onChangeText={setPassword}
       />
-      
+
       {loading ? (
         <ActivityIndicator size="large" color="#0000ff" />
       ) : (
         <>
-          <Button 
-            title="Iniciar sesión" 
-            onPress={handleLogin} 
-            disabled={!email || !password}
-          />
-          <Button 
-            title="Registrarse" 
-            onPress={() => navigation.navigate('Register')} 
-          />
+          <Button title="Iniciar sesión" onPress={handleLogin} disabled={!email || !password} />
+          <Button title="Registrarse" onPress={() => navigation.navigate('Register')} />
         </>
       )}
     </View>
