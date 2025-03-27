@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Button } from 'react-native';
+
 import AuthService from '../services/authService';
 
 const HomeScreen = ({ navigation }) => {
@@ -20,7 +21,9 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const goToProfile = () => {
-    navigation.navigate('Profile'); // Mantén la navegación hacia el perfil
+    if (user) {
+      navigation.navigate('Profile', { userId: user.id }); // Pasa el userId como parámetro
+    }
   };
 
   return (

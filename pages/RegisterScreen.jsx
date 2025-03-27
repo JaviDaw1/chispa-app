@@ -13,7 +13,7 @@ const RegisterScreen = ({ navigation }) => {
   const handleRegister = async () => {
     try {
       const authService = new AuthService();
-      
+
       // Enviar todos los datos necesarios al backend (también el UserRole, por defecto 'CLIENT')
       const signupData = {
         firstname,
@@ -35,31 +35,61 @@ const RegisterScreen = ({ navigation }) => {
   return (
     <View style={{ flex: 1, justifyContent: 'center', padding: 16 }}>
       <TextInput
-        style={{ height: 40, borderColor: 'gray', borderWidth: 1, marginBottom: 10, paddingLeft: 8 }}
+        style={{
+          height: 40,
+          borderColor: 'gray',
+          borderWidth: 1,
+          marginBottom: 10,
+          paddingLeft: 8,
+        }}
         placeholder="Nombre"
         value={firstname}
         onChangeText={setFirstname}
       />
       <TextInput
-        style={{ height: 40, borderColor: 'gray', borderWidth: 1, marginBottom: 10, paddingLeft: 8 }}
+        style={{
+          height: 40,
+          borderColor: 'gray',
+          borderWidth: 1,
+          marginBottom: 10,
+          paddingLeft: 8,
+        }}
         placeholder="Apellido"
         value={lastname}
         onChangeText={setLastname}
       />
       <TextInput
-        style={{ height: 40, borderColor: 'gray', borderWidth: 1, marginBottom: 10, paddingLeft: 8 }}
+        style={{
+          height: 40,
+          borderColor: 'gray',
+          borderWidth: 1,
+          marginBottom: 10,
+          paddingLeft: 8,
+        }}
         placeholder="Usuario"
         value={username}
         onChangeText={setUsername}
       />
       <TextInput
-        style={{ height: 40, borderColor: 'gray', borderWidth: 1, marginBottom: 10, paddingLeft: 8 }}
+        style={{
+          height: 40,
+          borderColor: 'gray',
+          borderWidth: 1,
+          marginBottom: 10,
+          paddingLeft: 8,
+        }}
         placeholder="Correo electrónico"
         value={email}
         onChangeText={setEmail}
       />
       <TextInput
-        style={{ height: 40, borderColor: 'gray', borderWidth: 1, marginBottom: 10, paddingLeft: 8 }}
+        style={{
+          height: 40,
+          borderColor: 'gray',
+          borderWidth: 1,
+          marginBottom: 10,
+          paddingLeft: 8,
+        }}
         placeholder="Contraseña"
         secureTextEntry
         value={password}

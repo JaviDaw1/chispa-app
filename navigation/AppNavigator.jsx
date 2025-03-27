@@ -1,7 +1,7 @@
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Importa AsyncStorage
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import React, { useEffect, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage'; // Importa AsyncStorage
 import { Text, View } from 'react-native'; // Para el caso de "Loading..."
 
 import HomeScreen from '../pages/HomeScreen';
@@ -13,12 +13,14 @@ const Stack = createStackNavigator();
 
 const AppNavigator = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(null); // Al principio está como null para mostrar "Loading..."
+  const [loading, setLoading] = useState(true); // Indicador de carga mientras verificamos el token
 
   useEffect(() => {
     const checkAuthentication = async () => {
       try {
         const token = await AsyncStorage.getItem('token'); // Verifica si hay token
         if (token) {
+          // Aquí puedes verificar la validez del token (opcional)
           setIsAuthenticated(true); // El usuario está autenticado
         } else {
           setIsAuthenticated(false); // El usuario no está autenticado
@@ -26,6 +28,8 @@ const AppNavigator = () => {
       } catch (error) {
         console.error('Error al verificar autenticación', error);
         setIsAuthenticated(false); // Si hay error, se asume que no está autenticado
+      } finally {
+        setLoading(false); // Deja de mostrar "Cargando..." cuando se complete la verificación
       }
     };
 
@@ -33,7 +37,7 @@ const AppNavigator = () => {
   }, []);
 
   // Mientras se verifica la autenticación, mostramos un mensaje de carga
-  if (isAuthenticated === null) {
+  if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <Text>Cargando...</Text>
