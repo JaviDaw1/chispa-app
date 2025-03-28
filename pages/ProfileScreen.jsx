@@ -105,13 +105,8 @@ const ProfileScreen = ({ navigation }) => {
             : 'No especificada'}
         </Text>
       </View>
-
       {/* Botones de acción */}
       <View style={styles.buttonContainer}>
-        <Button
-          title="Editar Perfil"
-          onPress={() => navigation.navigate('EditProfile', { profile })}
-        />
         <Button title="Ir a Inicio" onPress={() => navigation.navigate('Home')} />
       </View>
     </ScrollView>

@@ -30,6 +30,16 @@ const HomeScreen = ({ navigation }) => {
       navigation.navigate('Preference', { userId: user.id });
     }
   };
+  const goToMessages = () => {
+    if (user) {
+      navigation.navigate('Message', { userId: user.id });
+    }
+  };
+  const goToMatches = () => {
+    if (user) {
+      navigation.navigate('Match', { userId: user.id });
+    }
+  };
 
   return (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -38,6 +48,8 @@ const HomeScreen = ({ navigation }) => {
           <Text>Bienvenido a Chispa, {user.name}</Text>
           <Button title="Ver Perfil" onPress={goToProfile} />
           <Button title="Ver Preferencias" onPress={goToPreferences} />
+          <Button title="Ver Mensajes" onPress={goToMessages} />
+          <Button title="Ver Matches" onPress={goToMatches} />
         </>
       ) : (
         <Text>Cargando usuario...</Text>

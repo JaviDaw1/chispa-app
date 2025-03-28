@@ -154,4 +154,176 @@ export default class AuthService {
       return null;
     }
   }
+
+  // MÉTODOS PARA MENSAJES
+  async getMessage(userId) {
+    try {
+      const token = await this.getToken();
+      if (!token) throw new Error('No autenticado');
+      const response = await api.get(`/messages/user/${userId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error al obtener los mensajes:', error.response?.data || error.message);
+      throw error;
+    }
+  }
+  /*async getMatchDetails(matchId) {
+  try {
+    const token = await this.getToken();
+    if (!token) throw new Error('No autenticado');
+    
+    const response = await api.get(`/matches/${matchId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error al obtener detalles del match:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+async getMessagesByMatch(matchId) {
+  try {
+    const token = await this.getToken();
+    if (!token) throw new Error('No autenticado');
+    
+    const response = await api.get(`/messages/match/${matchId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error al obtener mensajes:', error.response?.data || error.message);
+    throw error;
+  }
+} */
+
+  async sendNewMessage(messageData) {
+    try {
+      const token = await this.getToken();
+      if (!token) throw new Error('No autenticado');
+
+      const response = await api.post('/messages', messageData);
+      return response.data;
+    } catch (error) {
+      console.error('Error al enviar mensaje:', error.response?.data || error.message);
+      throw error;
+    }
+  }
+
+  async markMessageAsRead(messageId) {
+    try {
+      const token = await this.getToken();
+      if (!token) throw new Error('No autenticado');
+
+      const response = await api.put(`/messages/${messageId}/read`);
+      return response.data;
+    } catch (error) {
+      console.error('Error al marcar mensaje como leído:', error.response?.data || error.message);
+      throw error;
+    }
+  }
+
+  // Método para guardar mensajes en caché
+  async saveMessagesToStorage(matchId, messages) {
+    try {
+      const allMessages = await this.getStoredMessages();
+      const messagesToSave = {
+        ...allMessages,
+        [matchId]: messages,
+      };
+      await AsyncStorage.setItem('messages', JSON.stringify(messagesToSave));
+    } catch (error) {
+      console.error('Error al guardar mensajes:', error);
+    }
+  }
+
+  // Método para obtener mensajes almacenados
+  async getStoredMessages() {
+    try {
+      const messages = await AsyncStorage.getItem('messages');
+      return messages ? JSON.parse(messages) : {};
+    } catch (error) {
+      console.error('Error al obtener mensajes almacenados:', error);
+      return {};
+    }
+  }
+
+  // MATCHES
+  /*async getUserMatches(userId) {
+    try {
+      const token = await this.getToken();
+      if (!token) throw new Error('No autenticado');
+
+      const response = await api.get(`/matches/user/${userId}`);
+      return response.data.map((match) => ({
+        id: match.id,
+        user1_id: match.user1_id,
+        user2_id: match.user2_id,
+       // name: match.name,
+       // lastName: match.lastName,
+       // profilePhoto: match.profilePhoto,
+        matchDate: match.matchDate,
+        matchState: match.matchState,
+       // lastMessage: match.lastMessage,
+       // unreadCount: match.unreadCount || 0,
+      }));
+    } catch (error) {
+      console.error('Error al obtener matches:', error.response?.data || error.message);
+      throw error;
+    }
+  }*/
+  async getUserMatches(userId) {
+    try {
+      const token = await this.getToken();
+      if (!token) throw new Error('No autenticado');
+
+      const response = await api.get(`/matches/user/${userId}`);
+
+      // Obtener detalles completos de cada match
+      const matchesWithDetails = await Promise.all(
+        response.data.map(async (match) => {
+          // Obtener información del otro usuario
+          const otherUserId = userId === match.user1_id ? match.user2_id : match.user1_id;
+          const profileResponse = await api.get(`/profiles/user/${otherUserId}`);
+
+          // Obtener el último mensaje
+          const messagesResponse = await api.get(`/messages/match/${match.id}?limit=1`);
+          const lastMessage = messagesResponse.data[0] || null;
+
+          // Contar mensajes no leídos
+          const unreadResponse = await api.get(
+            `/messages/unread?matchId=${match.id}&userId=${userId}`
+          );
+
+          return {
+            ...match,
+            name: profileResponse.data.name,
+            lastName: profileResponse.data.lastName,
+            profilePhoto: profileResponse.data.profilePhoto,
+            lastMessage,
+            unreadCount: unreadResponse.data.count || 0,
+          };
+        })
+      );
+
+      return matchesWithDetails;
+    } catch (error) {
+      console.error('Error al obtener matches:', error.response?.data || error.message);
+      throw error;
+    }
+  }
+
+  async saveMatchesToStorage(matches) {
+    try {
+      await AsyncStorage.setItem('matches', JSON.stringify(matches));
+    } catch (error) {
+      console.error('Error al guardar matches:', error);
+    }
+  }
+
+  async getStoredMatches() {
+    try {
+      const matches = await AsyncStorage.getItem('matches');
+      return matches ? JSON.parse(matches) : [];
+    } catch (error) {
+      console.error('Error al obtener matches almacenados:', error);
+      return [];
+    }
+  }
 }

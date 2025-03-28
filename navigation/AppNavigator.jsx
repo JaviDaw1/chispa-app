@@ -6,6 +6,8 @@ import { Text, View } from 'react-native'; // Para el caso de "Loading..."
 
 import HomeScreen from '../pages/HomeScreen';
 import LoginScreen from '../pages/LoginScreen';
+import MatchScreen from '../pages/MatchScreen';
+import MessageScreen from '../pages/MessageScreen';
 import PreferenceScreen from '../pages/PreferenceScreen';
 import ProfileScreen from '../pages/ProfileScreen';
 import RegisterScreen from '../pages/RegisterScreen';
@@ -60,6 +62,8 @@ const AppNavigator = () => {
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen name="Preference" component={PreferenceScreen} />
+        <Stack.Screen name="Message" component={MessageScreen} />
+        <Stack.Screen name="Match" component={MatchScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
