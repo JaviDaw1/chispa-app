@@ -10,11 +10,9 @@ import {
   RefreshControl,
 } from 'react-native';
 import { Avatar } from 'react-native-elements';
-
 import AuthService from '../services/authService';
 
 import 'moment/locale/es';
-
 moment.locale('es');
 
 const MatchScreen = ({ navigation }) => {
@@ -23,31 +21,72 @@ const MatchScreen = ({ navigation }) => {
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [profiles, setProfiles] = useState({});
   const authService = new AuthService();
+
+  const loadOtherUserProfile = async (userId) => {
+    try {
+      if (profiles[userId]) return profiles[userId];
+
+      const profileData = await authService.getProfile(userId);
+      console.log(`Perfil cargado para ${userId}:`, profileData);
+
+      const formattedProfile = {
+        name: profileData?.name || profileData?.firstname || 'Usuario',
+        lastName: profileData?.lastName || profileData?.lastname || '',
+        profilePhoto: profileData?.profilePhoto || 'https://via.placeholder.com/150',
+      };
+
+      setProfiles((prev) => ({
+        ...prev,
+        [userId]: formattedProfile,
+      }));
+
+      return formattedProfile;
+    } catch (err) {
+      console.error('Error al cargar perfil:', err);
+      return {
+        name: 'Usuario',
+        lastName: '',
+        profilePhoto: 'https://via.placeholder.com/150',
+      };
+    }
+  };
 
   const loadMatches = async () => {
     try {
       setRefreshing(true);
       setError(null);
 
-      // Obtener usuario actual
       const user = await authService.getUserInfo();
       if (!user || !user.id) {
         throw new Error('No se pudo obtener información del usuario');
       }
       setCurrentUser(user);
 
-      // Cargar matches desde la API
       const matchesData = await authService.getUserMatches(user.id);
+      console.log('Matches recibidos:', matchesData);
       setMatches(matchesData);
-
-      // Guardar en caché
       await authService.saveMatchesToStorage(matchesData);
+
+      // Cargar perfiles de los usuarios con los que hizo match
+      const profilePromises = matchesData.map(async (match) => {
+        const otherUserId = match.user1_id === user.id ? match.user2_id : match.user1_id;
+        const profile = await loadOtherUserProfile(otherUserId);
+        return { userId: otherUserId, profile };
+      });
+
+      const loadedProfiles = await Promise.all(profilePromises);
+      const newProfiles = Object.fromEntries(loadedProfiles.map((p) => [p.userId, p.profile]));
+
+      setProfiles((prev) => ({
+        ...prev,
+        ...newProfiles,
+      }));
     } catch (err) {
       console.error('Error al cargar matches:', err);
       setError(err.message || 'Error al cargar matches');
 
-      // Intentar cargar de caché si hay error
       const cachedMatches = await authService.getStoredMatches();
       if (cachedMatches.length > 0) {
         setMatches(cachedMatches);
@@ -59,21 +98,7 @@ const MatchScreen = ({ navigation }) => {
   };
 
   useEffect(() => {
-    // Cargar datos iniciales
-    const initializeData = async () => {
-      setLoading(true);
-
-      // Primero cargar de caché para mejor experiencia
-      const cachedMatches = await authService.getStoredMatches();
-      if (cachedMatches.length > 0) {
-        setMatches(cachedMatches);
-      }
-
-      // Luego actualizar desde la API
-      await loadMatches();
-    };
-
-    initializeData();
+    loadMatches();
   }, []);
 
   const renderMatchItem = ({ item }) => {
@@ -82,24 +107,27 @@ const MatchScreen = ({ navigation }) => {
       ? matchDate.format('HH:mm')
       : matchDate.format('D MMM [a las] HH:mm');
 
+    const otherUserId = item.user1_id === currentUser?.id ? item.user2_id : item.user1_id;
+    const otherUserProfile = profiles[otherUserId] || {
+      name: 'Cargando...',
+      lastName: '',
+      profilePhoto: 'https://via.placeholder.com/150',
+    };
+
     return (
       <TouchableOpacity
         style={styles.matchItem}
         onPress={() =>
           navigation.navigate('Messages', {
             matchId: item.id,
-            otherUserId: item.user1_id === currentUser?.id ? item.user2_id : item.user1_id,
+            otherUserId: otherUserId,
           })
         }>
-        <Avatar
-          rounded
-          source={{ uri: item.profilePhoto || 'https://via.placeholder.com/150' }}
-          size="medium"
-        />
+        <Avatar rounded source={{ uri: otherUserProfile.profilePhoto }} size="medium" />
 
         <View style={styles.matchInfo}>
           <Text style={styles.matchName}>
-            {item.name} {item.lastName}
+            {otherUserProfile.name} {otherUserProfile.lastName}
           </Text>
           <Text style={styles.matchDate}>Match el {showDate}</Text>
           {item.lastMessage && (
@@ -118,97 +146,56 @@ const MatchScreen = ({ navigation }) => {
     );
   };
 
-  if (loading && matches.length === 0) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4CAF50" />
-        <Text>Cargando matches...</Text>
-      </View>
-    );
-  }
-
-  if (error && matches.length === 0) {
-    return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={loadMatches}>
-          <Text style={styles.retryButtonText}>Reintentar</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Tus Matches</Text>
 
-      <FlatList
-        data={matches}
-        renderItem={renderMatchItem}
-        keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={styles.listContainer}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={loadMatches}
-            colors={['#4CAF50']}
-            tintColor="#4CAF50"
-          />
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            {/* <Image source={require('../assets/no-matches.png')} style={styles.emptyImage} /> */}
-            <Text style={styles.emptyTitle}>No tienes matches aún</Text>
-            <Text style={styles.emptyText}>Cuando hagas match con alguien, aparecerá aquí</Text>
-          </View>
-        }
-      />
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#4CAF50" />
+          <Text>Cargando...</Text>
+        </View>
+      ) : error ? (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity onPress={loadMatches} style={styles.retryButton}>
+            <Text style={styles.retryButtonText}>Reintentar</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <FlatList
+          data={matches}
+          renderItem={renderMatchItem}
+          keyExtractor={(item) => item.id.toString()}
+          contentContainerStyle={styles.listContainer}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={loadMatches} colors={['#4CAF50']} />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyTitle}>No tienes matches aún</Text>
+              <Text style={styles.emptyText}>Cuando hagas match con alguien, aparecerá aquí.</Text>
+            </View>
+          }
+        />
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    paddingHorizontal: 15,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  errorText: {
-    color: '#f44336',
-    fontSize: 16,
-    marginBottom: 20,
-    textAlign: 'center',
-  },
+  container: { flex: 1, backgroundColor: '#fff', paddingHorizontal: 15 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  errorText: { color: '#f44336', fontSize: 16, marginBottom: 20, textAlign: 'center' },
   retryButton: {
     backgroundColor: '#4CAF50',
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 5,
   },
-  retryButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginVertical: 20,
-    color: '#333',
-  },
-  listContainer: {
-    paddingBottom: 20,
-  },
+  retryButtonText: { color: '#fff', fontWeight: 'bold' },
+  title: { fontSize: 24, fontWeight: 'bold', marginVertical: 20, color: '#333' },
   matchItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -216,25 +203,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
-  matchInfo: {
-    marginLeft: 15,
-    flex: 1,
-  },
-  matchName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  matchDate: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 2,
-  },
-  lastMessage: {
-    fontSize: 14,
-    color: '#888',
-    marginTop: 5,
-  },
+  matchInfo: { marginLeft: 15, flex: 1 },
+  matchName: { fontSize: 16, fontWeight: 'bold', color: '#333' },
+  matchDate: { fontSize: 12, color: '#666', marginTop: 2 },
   unreadBadge: {
     backgroundColor: '#4CAF50',
     borderRadius: 50,
@@ -244,36 +215,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginLeft: 10,
   },
-  unreadText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 30,
-  },
-  emptyImage: {
-    width: 200,
-    height: 200,
-    marginBottom: 20,
-    opacity: 0.6,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#555',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  emptyText: {
-    fontSize: 14,
-    color: '#888',
-    textAlign: 'center',
-    lineHeight: 20,
-  },
+  unreadText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
 });
 
 export default MatchScreen;

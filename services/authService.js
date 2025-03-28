@@ -268,43 +268,35 @@ async getMessagesByMatch(matchId) {
       throw error;
     }
   }*/
+
   async getUserMatches(userId) {
     try {
+      // Validaciones iniciales
+      if (!userId) throw new Error('ID de usuario no proporcionado');
+
       const token = await this.getToken();
       if (!token) throw new Error('No autenticado');
 
-      const response = await api.get(`/matches/user/${userId}`);
+      // Llamada al endpoint verificado
+      const response = await api.get(`/matches/user/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-      // Obtener detalles completos de cada match
-      const matchesWithDetails = await Promise.all(
-        response.data.map(async (match) => {
-          // Obtener información del otro usuario
-          const otherUserId = userId === match.user1_id ? match.user2_id : match.user1_id;
-          const profileResponse = await api.get(`/profiles/user/${otherUserId}`);
+      // Validar estructura de respuesta esperada
+      if (!Array.isArray(response.data)) {
+        throw new Error('Formato de respuesta inválido');
+      }
 
-          // Obtener el último mensaje
-          const messagesResponse = await api.get(`/messages/match/${match.id}?limit=1`);
-          const lastMessage = messagesResponse.data[0] || null;
-
-          // Contar mensajes no leídos
-          const unreadResponse = await api.get(
-            `/messages/unread?matchId=${match.id}&userId=${userId}`
-          );
-
-          return {
-            ...match,
-            name: profileResponse.data.name,
-            lastName: profileResponse.data.lastName,
-            profilePhoto: profileResponse.data.profilePhoto,
-            lastMessage,
-            unreadCount: unreadResponse.data.count || 0,
-          };
-        })
-      );
-
-      return matchesWithDetails;
+      // Procesar matches (adaptado a tu estructura de API)
+      return response.data.map((match) => ({
+        id: match.id,
+        user1_id: match.user1_id,
+        user2_id: match.user2_id,
+        matchDate: match.matchDate || new Date().toISOString(),
+        matchState: match.matchState || 'ACCEPTED',
+      }));
     } catch (error) {
-      console.error('Error al obtener matches:', error.response?.data || error.message);
+      console.error('Error en getUserMatches:', error);
       throw error;
     }
   }
